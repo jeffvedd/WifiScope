@@ -1,12 +1,13 @@
 {
   "name": "WifiScope",
   "short_name": "WifiScope",
-  "description": "WiFi network analyzer and scanner",
+  "description": "WiFi network analyzer and scanner | Analisador e scanner de rede Wi-Fi",
   "start_url": "/WifiScope/",
   "scope": "/WifiScope/",
   "display": "standalone",
   "background_color": "#050508",
   "theme_color": "#00d4ff",
+  "lang": "pt-BR",
   "icons": [
     {
       "src": "icon-192.png",

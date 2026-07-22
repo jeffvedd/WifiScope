@@ -281,10 +281,10 @@
   <div class="header-row2">
     <div class="status-bar">
       <div id="conn-dot"></div>
-      <span id="conn-label">WAITING</span>
+      <span id="conn-label">AGUARDANDO</span>
     </div>
     <div id="net-info">–––</div>
-    <button id="btn-start" onclick="toggleScan()">▶ START</button>
+    <button id="btn-start" onclick="toggleScan()">▶ INICIAR</button>
   </div>
 </header>
 
@@ -337,14 +337,14 @@
     <div class="card" style="grid-column:span 2">
       <div class="card-label" id="label-controls">Controles</div>
       <div class="controls">
-        <button class="ctrl-btn active" id="btn-scroll"  onclick="toggleMode('scroll')" data-en="SCROLL" data-pt="ROLAR">ROLAR</button>
-        <button class="ctrl-btn"       id="btn-trigger" onclick="toggleMode('trigger')" data-en="TRIGGER" data-pt="GATILHO">GATILHO</button>
-        <button class="ctrl-btn"       id="btn-freeze"  onclick="toggleFreeze()" data-en="❚❚ PAUSE" data-pt="❚❚ PAUSA">❚❚ PAUSA</button>
-        <label class="ctrl-label" data-en="ZOOM" data-pt="ZOOM">ZOOM
+        <button class="ctrl-btn active" id="btn-scroll"  onclick="toggleMode('scroll')">ROLAR</button>
+        <button class="ctrl-btn"       id="btn-trigger" onclick="toggleMode('trigger')">GATILHO</button>
+        <button class="ctrl-btn"       id="btn-freeze"  onclick="toggleFreeze()">❚❚ PAUSA</button>
+        <label class="ctrl-label">ZOOM
           <input type="range" id="zoom" min="1" max="8" value="1" step="0.5"
                  oninput="zoomLevel=+this.value">
         </label>
-        <label class="ctrl-label" data-en="BRIGHTNESS" data-pt="BRILHO">BRILHO
+        <label class="ctrl-label">BRILHO
           <input type="range" id="bright" min="0.3" max="1" value="0.85" step="0.05"
                  oninput="traceAlpha=+this.value">
         </label>
@@ -461,13 +461,6 @@ function setLanguage(lang) {
   document.getElementById('btn-freeze').textContent = frozen ? translations[lang].resumeBtn : translations[lang].pauseBtn;
   
   document.getElementById('info-banner').innerHTML = translations[lang].infoBanner;
-  
-  // Update labels in controls
-  document.querySelectorAll('label.ctrl-label').forEach(label => {
-    const text = label.textContent.trim().split('\n')[0];
-    if (text === 'ZOOM' || text === 'ZOOM') label.innerHTML = translations[lang].zoomLabel + label.innerHTML.substring(4);
-    if (text === 'BRILHO' || text === 'BRIGHTNESS') label.innerHTML = translations[lang].brightnessLabel + label.innerHTML.substring(lang === 'pt' ? 6 : 10);
-  });
 }
 
 function toggleLanguage() {
@@ -484,15 +477,13 @@ setLanguage(currentLang);
 const BUF_SIZE  = 800;
 const HISTORY   = 400;
 const POLL_MS   = 500;
-// Lightweight endpoint to measure latency (HTTP ping)
-// We use gstatic or any small URL
 const PING_URL  = 'https://www.gstatic.com/generate_204';
 
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-let pingBuf    = new Float32Array(BUF_SIZE);  // latency ms → trace1
-let qualBuf    = new Float32Array(BUF_SIZE);  // quality 0-5 → trace2
+let pingBuf    = new Float32Array(BUF_SIZE);
+let qualBuf    = new Float32Array(BUF_SIZE);
 let head = 0, count = 0;
 
 let frozen     = false;
@@ -520,17 +511,14 @@ function getNetInfo() {
 
 function qualityFromNetInfo(info, pingMs) {
   if (!info) {
-    // fallback: estimate only by ping
     if (pingMs <  60) return 95;
     if (pingMs < 120) return 80;
     if (pingMs < 250) return 60;
     if (pingMs < 500) return 35;
     return 15;
   }
-  // effectiveType: 'slow-2g'=10, '2g'=25, '3g'=60, '4g'=90
   const etMap = { 'slow-2g':10, '2g':25, '3g':60, '4g':90 };
   let q = etMap[info.effectType] || 50;
-  // adjust by real ping
   if (pingMs > 0) {
     const pingScore = Math.max(0, 100 - pingMs / 5);
     q = Math.round(q * 0.5 + pingScore * 0.5);
@@ -568,7 +556,6 @@ function startScan() {
   doMeasure();
   pollTimer = setInterval(doMeasure, POLL_MS);
 
-  // Listen for real-time network changes
   const conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
   if (conn) conn.addEventListener('change', doMeasure);
 }
@@ -586,9 +573,7 @@ async function doMeasure() {
   const info   = getNetInfo();
   const q      = qualityFromNetInfo(info, pingMs);
 
-  // Convert quality 0-100 → voltage 0-5V (for scope axis)
   const v = (q / 100) * 5;
-  // Convert ping to inverted voltage (low ping = high signal)
   const vPing = Math.max(0, Math.min(5, 5 - (pingMs / 600) * 5));
 
   pushSample(vPing, v);
@@ -600,12 +585,10 @@ async function doMeasure() {
 //  UI UPDATE
 // ══════════════════════════════════════════════════════
 function updateUI(pingMs, q, info) {
-  // Ping
   const pingEl = document.getElementById('val-ping');
   pingEl.textContent = pingMs;
   pingEl.className = 'card-value ' + (pingMs < 80 ? 'green' : pingMs < 200 ? '' : 'red');
 
-  // Quality
   const qEl = document.getElementById('val-quality');
   qEl.textContent = q;
   qEl.className = 'card-value ' + (q > 65 ? 'green' : q > 35 ? '' : 'red');
@@ -614,7 +597,6 @@ function updateUI(pingMs, q, info) {
   bar.style.width = q + '%';
   bar.style.background = q > 65 ? 'var(--ok)' : q > 35 ? 'var(--warn)' : '#ff3030';
 
-  // Type / speed
   if (info) {
     document.getElementById('val-type').textContent  = (info.effectType || info.type).toUpperCase();
     const downlinkText = info.downlink ? info.downlink + ' ' + translations[currentLang].downlink : '––';
@@ -627,7 +609,6 @@ function updateUI(pingMs, q, info) {
     document.getElementById('net-info').textContent  = `Ping: ${pingMs}ms`;
   }
 
-  // Status banner
   let msg = '';
   if      (q > 80) msg = translations[currentLang].excellent;
   else if (q > 60) msg = translations[currentLang].good;
@@ -672,6 +653,7 @@ function toggleFreeze() {
   b.textContent = frozen ? translations[currentLang].resumeBtn : translations[currentLang].pauseBtn;
   b.classList.toggle('active', frozen);
 }
+
 function toggleMode(m) {
   mode = m;
   document.getElementById('btn-scroll').classList.toggle('active',  m === 'scroll');
@@ -692,7 +674,6 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// Demo loop while not started
 let demoT = 0;
 const demoTimer = setInterval(() => {
   if (scanning) return;
@@ -729,13 +710,11 @@ function render() {
   const GW=W-PL-PR, GH=H-PT-PB;
   if (GW<10||GH<10) return;
 
-  // BG
   ctx.fillStyle=C.bg; ctx.fillRect(0,0,W,H);
   const vig=ctx.createRadialGradient(W/2,H/2,H*.1,W/2,H/2,H*.85);
   vig.addColorStop(0,'transparent'); vig.addColorStop(1,'rgba(0,0,0,.5)');
   ctx.fillStyle=vig; ctx.fillRect(0,0,W,H);
 
-  // Grid
   const COLS=10, ROWS=8;
   ctx.strokeStyle=C.grid; ctx.lineWidth=1;
   for(let c=0;c<=COLS;c++){
@@ -751,11 +730,9 @@ function render() {
     ctx.fillRect(PL+(c/(COLS*5))*GW-.5, PT+(r/(ROWS*5))*GH-.5, 1,1);
   }
 
-  // Border
   ctx.strokeStyle=C.axis; ctx.lineWidth=1.5;
   ctx.strokeRect(PL,PT,GW,GH);
 
-  // Y labels
   ctx.fillStyle=C.text; ctx.font='10px "Share Tech Mono"'; ctx.textAlign='right';
   const yLabels=['100%','75%','50%','25%','0%'];
   for(let i=0;i<5;i++){
@@ -763,7 +740,6 @@ function render() {
     ctx.fillText(yLabels[i], PL-4, y+4);
   }
 
-  // X labels
   ctx.textAlign='center';
   const vis=Math.min(count, Math.floor(HISTORY/zoomLevel));
   for(let c=0;c<=COLS;c++){
@@ -774,7 +750,6 @@ function render() {
 
   if(vis<2) return;
 
-  // Samples
   const samples=[];
   for(let i=0;i<vis;i++){
     const idx=(head-vis+i+BUF_SIZE)%BUF_SIZE;
@@ -782,7 +757,6 @@ function render() {
   }
   const xStep=GW/(vis-1);
 
-  // ── TRACE 1: Inverted Ping (cyan) ──
   for(let pass=0;pass<3;pass++){
     ctx.beginPath();
     ctx.lineWidth   = pass===0?6:pass===1?2.5:1.2;
@@ -797,7 +771,6 @@ function render() {
   }
   ctx.globalAlpha=1;
 
-  // ── TRACE 2: Quality (orange dashed) ──
   for(let pass=0;pass<2;pass++){
     ctx.beginPath();
     ctx.lineWidth   = pass===0?4:1.5;
@@ -814,7 +787,6 @@ function render() {
   }
   ctx.globalAlpha=1;
 
-  // ── Trigger 50% ──
   if(mode==='trigger'){
     const ty=PT+GH-(2.5/5)*GH;
     ctx.strokeStyle=C.trig; ctx.lineWidth=1;
@@ -825,14 +797,12 @@ function render() {
     ctx.fillText(translations[currentLang].triggerLabel, PL+4, ty-4);
   }
 
-  // Cursor
   const curX=PL+GW;
   ctx.strokeStyle='rgba(0,255,231,.4)'; ctx.lineWidth=1;
   ctx.setLineDash([3,3]);
   ctx.beginPath(); ctx.moveTo(curX,PT); ctx.lineTo(curX,PT+GH); ctx.stroke();
   ctx.setLineDash([]);
 
-  // Top labels
   ctx.fillStyle=C.text; ctx.font='9px "Share Tech Mono"'; ctx.textAlign='left';
   ctx.fillText(`${Math.round(vis*POLL_MS/COLS)}${translations[currentLang].msPerDiv}`, PL+4, PT-8);
   ctx.fillStyle=C.t1; ctx.fillText(translations[currentLang].chPing, PL+GW-200, PT-8);

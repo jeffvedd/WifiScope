@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
@@ -66,6 +66,11 @@
   }
   .logo span { color:var(--glow2); }
 
+  .header-controls {
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
   .badge {
     font-family:var(--font-disp);
     font-size:9px;
@@ -75,6 +80,23 @@
     color:var(--glow2);
     border-radius:3px;
     text-shadow:0 0 8px var(--glow2);
+  }
+
+  .lang-switch {
+    font-family:var(--font-mono);
+    font-size:9px;
+    letter-spacing:1px;
+    padding:3px 6px;
+    background:transparent;
+    border:1px solid var(--dim);
+    color:var(--dim);
+    border-radius:3px;
+    cursor:pointer;
+    transition:all .2s;
+  }
+  .lang-switch:hover {
+    border-color:var(--glow2);
+    color:var(--glow2);
   }
 
   .status-bar { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--dim); }
@@ -235,6 +257,7 @@
 
   @media(max-width:480px){
     .bottom { grid-template-columns:1fr 1fr; }
+    .header-controls { flex-wrap:wrap; }
   }
 </style>
 <link rel="manifest" href="manifest.json">
@@ -250,7 +273,10 @@
 <header>
   <div class="header-row1">
     <div class="logo">WI-FI<span>SCOPE</span></div>
-    <div class="badge">STANDALONE</div>
+    <div class="header-controls">
+      <div class="badge" id="badge">STANDALONE</div>
+      <button class="lang-switch" id="lang-btn" onclick="toggleLanguage()">EN / PT</button>
+    </div>
   </div>
   <div class="header-row2">
     <div class="status-bar">
@@ -271,14 +297,14 @@
 
     <!-- Latency (ping) -->
     <div class="card">
-      <div class="card-label">Latency</div>
+      <div class="card-label" id="label-latency">Latência</div>
       <div class="card-value" id="val-ping">––</div>
-      <div class="card-unit">ms (ping)</div>
+      <div class="card-unit" id="unit-ping">ms (ping)</div>
     </div>
 
     <!-- Estimated quality -->
     <div class="card">
-      <div class="card-label">Quality</div>
+      <div class="card-label" id="label-quality">Qualidade</div>
       <div class="card-value green" id="val-quality">––</div>
       <div class="card-unit">%
         <div class="quality-bar-wrap"><div id="quality-bar"></div></div>
@@ -287,38 +313,38 @@
 
     <!-- Connection type -->
     <div class="card">
-      <div class="card-label">Type / Band</div>
+      <div class="card-label" id="label-type">Tipo / Banda</div>
       <div class="card-value orange" id="val-type">––</div>
       <div class="card-unit" id="val-speed">––</div>
     </div>
 
     <!-- Virtual LEDs -->
     <div class="card">
-      <div class="card-label">Visual Signal</div>
+      <div class="card-label" id="label-signal">Sinal Visual</div>
       <div class="led-row">
         <div class="led-ind">
           <div class="led-bulb" id="led6"></div>
-          <div class="led-name">GOOD</div>
+          <div class="led-name" id="led-good">BOM</div>
         </div>
         <div class="led-ind">
           <div class="led-bulb" id="led8"></div>
-          <div class="led-name">WEAK</div>
+          <div class="led-name" id="led-weak">FRACO</div>
         </div>
       </div>
     </div>
 
     <!-- Controls -->
     <div class="card" style="grid-column:span 2">
-      <div class="card-label">Controls</div>
+      <div class="card-label" id="label-controls">Controles</div>
       <div class="controls">
-        <button class="ctrl-btn active" id="btn-scroll"  onclick="toggleMode('scroll')">SCROLL</button>
-        <button class="ctrl-btn"       id="btn-trigger" onclick="toggleMode('trigger')">TRIGGER</button>
-        <button class="ctrl-btn"       id="btn-freeze"  onclick="toggleFreeze()">❚❚ PAUSE</button>
-        <label class="ctrl-label">ZOOM
+        <button class="ctrl-btn active" id="btn-scroll"  onclick="toggleMode('scroll')" data-en="SCROLL" data-pt="ROLAR">ROLAR</button>
+        <button class="ctrl-btn"       id="btn-trigger" onclick="toggleMode('trigger')" data-en="TRIGGER" data-pt="GATILHO">GATILHO</button>
+        <button class="ctrl-btn"       id="btn-freeze"  onclick="toggleFreeze()" data-en="❚❚ PAUSE" data-pt="❚❚ PAUSA">❚❚ PAUSA</button>
+        <label class="ctrl-label" data-en="ZOOM" data-pt="ZOOM">ZOOM
           <input type="range" id="zoom" min="1" max="8" value="1" step="0.5"
                  oninput="zoomLevel=+this.value">
         </label>
-        <label class="ctrl-label">BRIGHTNESS
+        <label class="ctrl-label" data-en="BRIGHTNESS" data-pt="BRILHO">BRILHO
           <input type="range" id="bright" min="0.3" max="1" value="0.85" step="0.05"
                  oninput="traceAlpha=+this.value">
         </label>
@@ -328,8 +354,8 @@
     <!-- Info -->
     <div class="card" style="grid-column:1/-1">
       <div class="info-banner" id="info-banner">
-        ℹ️ Tap <b>▶ START</b> to begin measuring.<br>
-        The oscilloscope uses <b>network latency</b> and the <b>Network Information API</b> from Chrome to estimate Wi-Fi signal quality in real time — no extra hardware needed.
+        ℹ️ Toque em <b>▶ INICIAR</b> para começar a medir.<br>
+        O osciloscópio usa <b>latência de rede</b> e a <b>Network Information API</b> do Chrome para estimar a qualidade do sinal Wi-Fi em tempo real — nenhum hardware extra necessário.
       </div>
     </div>
 
@@ -337,6 +363,121 @@
 </main>
 
 <script>
+// ══════════════════════════════════════════════════════
+//  TRANSLATIONS
+// ══════════════════════════════════════════════════════
+const translations = {
+  pt: {
+    badge: 'STANDALONE',
+    connLabel: 'AGUARDANDO',
+    measuring: 'MEDINDO...',
+    stopped: 'PARADO',
+    start: '▶ INICIAR',
+    stop: '■ PARAR',
+    labelLatency: 'Latência',
+    unitPing: 'ms (ping)',
+    labelQuality: 'Qualidade',
+    labelType: 'Tipo / Banda',
+    labelSignal: 'Sinal Visual',
+    ledGood: 'BOM',
+    ledWeak: 'FRACO',
+    labelControls: 'Controles',
+    scrollBtn: 'ROLAR',
+    triggerBtn: 'GATILHO',
+    pauseBtn: '❚❚ PAUSA',
+    resumeBtn: '▶ RETOMAR',
+    zoomLabel: 'ZOOM',
+    brightnessLabel: 'BRILHO',
+    infoBanner: 'ℹ️ Toque em <b>▶ INICIAR</b> para começar a medir.<br>O osciloscópio usa <b>latência de rede</b> e a <b>Network Information API</b> do Chrome para estimar a qualidade do sinal Wi-Fi em tempo real — nenhum hardware extra necessário.',
+    excellent: '✅ <b>Excelente</b> sinal — ótima cobertura neste local.',
+    good: '🟢 <b>Bom</b> sinal — conexão estável.',
+    moderate: '🟡 <b>Moderado</b> sinal — podem ocorrer desacelerações.',
+    weak: '🔴 <b>Fraco</b> sinal — tente se aproximar do roteador.',
+    typeWifi: 'WI-FI',
+    chPing: '▬ CH1: Ping',
+    chQuality: '▬ CH2: Qualidade',
+    triggerLabel: 'TRIG 50%',
+    msPerDiv: 'ms/div · 0–100%',
+    downlink: 'Mbps abaixo'
+  },
+  en: {
+    badge: 'STANDALONE',
+    connLabel: 'WAITING',
+    measuring: 'MEASURING...',
+    stopped: 'STOPPED',
+    start: '▶ START',
+    stop: '■ STOP',
+    labelLatency: 'Latency',
+    unitPing: 'ms (ping)',
+    labelQuality: 'Quality',
+    labelType: 'Type / Band',
+    labelSignal: 'Visual Signal',
+    ledGood: 'GOOD',
+    ledWeak: 'WEAK',
+    labelControls: 'Controls',
+    scrollBtn: 'SCROLL',
+    triggerBtn: 'TRIGGER',
+    pauseBtn: '❚❚ PAUSE',
+    resumeBtn: '▶ RESUME',
+    zoomLabel: 'ZOOM',
+    brightnessLabel: 'BRIGHTNESS',
+    infoBanner: 'ℹ️ Tap <b>▶ START</b> to begin measuring.<br>The oscilloscope uses <b>network latency</b> and the <b>Network Information API</b> from Chrome to estimate Wi-Fi signal quality in real time — no extra hardware needed.',
+    excellent: '✅ <b>Excellent</b> signal — great coverage at this location.',
+    good: '🟢 <b>Good</b> signal — stable connection.',
+    moderate: '🟡 <b>Moderate</b> signal — some slowdowns may occur.',
+    weak: '🔴 <b>Weak</b> signal — try moving closer to the router.',
+    typeWifi: 'WI-FI',
+    chPing: '▬ CH1: Ping',
+    chQuality: '▬ CH2: Quality',
+    triggerLabel: 'TRIG 50%',
+    msPerDiv: 'ms/div · 0–100%',
+    downlink: 'Mbps down'
+  }
+};
+
+let currentLang = localStorage.getItem('wifiScopeLang') || 'pt';
+
+function setLanguage(lang) {
+  currentLang = lang;
+  localStorage.setItem('wifiScopeLang', lang);
+  document.documentElement.lang = lang === 'pt' ? 'pt-BR' : 'en';
+  
+  // Update UI elements
+  document.getElementById('badge').textContent = translations[lang].badge;
+  document.getElementById('conn-label').textContent = translations[lang].connLabel;
+  document.getElementById('btn-start').textContent = scanning ? translations[lang].stop : translations[lang].start;
+  
+  document.getElementById('label-latency').textContent = translations[lang].labelLatency;
+  document.getElementById('unit-ping').textContent = translations[lang].unitPing;
+  document.getElementById('label-quality').textContent = translations[lang].labelQuality;
+  document.getElementById('label-type').textContent = translations[lang].labelType;
+  document.getElementById('label-signal').textContent = translations[lang].labelSignal;
+  document.getElementById('led-good').textContent = translations[lang].ledGood;
+  document.getElementById('led-weak').textContent = translations[lang].ledWeak;
+  document.getElementById('label-controls').textContent = translations[lang].labelControls;
+  
+  document.getElementById('btn-scroll').textContent = translations[lang].scrollBtn;
+  document.getElementById('btn-trigger').textContent = translations[lang].triggerBtn;
+  document.getElementById('btn-freeze').textContent = frozen ? translations[lang].resumeBtn : translations[lang].pauseBtn;
+  
+  document.getElementById('info-banner').innerHTML = translations[lang].infoBanner;
+  
+  // Update labels in controls
+  document.querySelectorAll('label.ctrl-label').forEach(label => {
+    const text = label.textContent.trim().split('\n')[0];
+    if (text === 'ZOOM' || text === 'ZOOM') label.innerHTML = translations[lang].zoomLabel + label.innerHTML.substring(4);
+    if (text === 'BRILHO' || text === 'BRIGHTNESS') label.innerHTML = translations[lang].brightnessLabel + label.innerHTML.substring(lang === 'pt' ? 6 : 10);
+  });
+}
+
+function toggleLanguage() {
+  const newLang = currentLang === 'pt' ? 'en' : 'pt';
+  setLanguage(newLang);
+}
+
+// Initialize language
+setLanguage(currentLang);
+
 // ══════════════════════════════════════════════════════
 //  CONFIG
 // ══════════════════════════════════════════════════════
@@ -422,8 +563,8 @@ function toggleScan() {
 
 function startScan() {
   scanning = true;
-  document.getElementById('btn-start').textContent = '■ STOP';
-  setStatus('connected', 'MEASURING...');
+  document.getElementById('btn-start').textContent = translations[currentLang].stop;
+  setStatus('connected', translations[currentLang].measuring);
   doMeasure();
   pollTimer = setInterval(doMeasure, POLL_MS);
 
@@ -436,8 +577,8 @@ function stopScan() {
   scanning = false;
   clearInterval(pollTimer);
   clearInterval(ledTimer);
-  document.getElementById('btn-start').textContent = '▶ START';
-  setStatus('', 'STOPPED');
+  document.getElementById('btn-start').textContent = translations[currentLang].start;
+  setStatus('', translations[currentLang].stopped);
 }
 
 async function doMeasure() {
@@ -476,21 +617,22 @@ function updateUI(pingMs, q, info) {
   // Type / speed
   if (info) {
     document.getElementById('val-type').textContent  = (info.effectType || info.type).toUpperCase();
-    document.getElementById('val-speed').textContent = info.downlink ? info.downlink + ' Mbps down' : '––';
+    const downlinkText = info.downlink ? info.downlink + ' ' + translations[currentLang].downlink : '––';
+    document.getElementById('val-speed').textContent = downlinkText;
     document.getElementById('net-info').textContent  =
       `${info.effectType || info.type}  ·  RTT ${info.rtt}ms  ·  ↓${info.downlink}Mbps`;
   } else {
-    document.getElementById('val-type').textContent  = 'WI-FI';
+    document.getElementById('val-type').textContent  = translations[currentLang].typeWifi;
     document.getElementById('val-speed').textContent = pingMs + 'ms ping';
     document.getElementById('net-info').textContent  = `Ping: ${pingMs}ms`;
   }
 
   // Status banner
   let msg = '';
-  if      (q > 80) msg = '✅ <b>Excellent</b> signal — great coverage at this location.';
-  else if (q > 60) msg = '🟢 <b>Good</b> signal — stable connection.';
-  else if (q > 35) msg = '🟡 <b>Moderate</b> signal — some slowdowns may occur.';
-  else             msg = '🔴 <b>Weak</b> signal — try moving closer to the router.';
+  if      (q > 80) msg = translations[currentLang].excellent;
+  else if (q > 60) msg = translations[currentLang].good;
+  else if (q > 35) msg = translations[currentLang].moderate;
+  else             msg = translations[currentLang].weak;
   document.getElementById('info-banner').innerHTML = msg;
 }
 
@@ -527,7 +669,7 @@ function pushSample(vPing, vQual) {
 function toggleFreeze() {
   frozen = !frozen;
   const b = document.getElementById('btn-freeze');
-  b.textContent = frozen ? '▶ RESUME' : '❚❚ PAUSE';
+  b.textContent = frozen ? translations[currentLang].resumeBtn : translations[currentLang].pauseBtn;
   b.classList.toggle('active', frozen);
 }
 function toggleMode(m) {
@@ -680,7 +822,7 @@ function render() {
     ctx.beginPath(); ctx.moveTo(PL,ty); ctx.lineTo(PL+GW,ty); ctx.stroke();
     ctx.setLineDash([]);
     ctx.fillStyle=C.trig; ctx.font='9px "Share Tech Mono"'; ctx.textAlign='left';
-    ctx.fillText('TRIG 50%', PL+4, ty-4);
+    ctx.fillText(translations[currentLang].triggerLabel, PL+4, ty-4);
   }
 
   // Cursor
@@ -692,9 +834,9 @@ function render() {
 
   // Top labels
   ctx.fillStyle=C.text; ctx.font='9px "Share Tech Mono"'; ctx.textAlign='left';
-  ctx.fillText(`${Math.round(vis*POLL_MS/COLS)}ms/div · 0–100%`, PL+4, PT-8);
-  ctx.fillStyle=C.t1; ctx.fillText('▬ CH1: Ping', PL+GW-200, PT-8);
-  ctx.fillStyle=C.t2; ctx.fillText('▬ CH2: Quality', PL+GW-110, PT-8);
+  ctx.fillText(`${Math.round(vis*POLL_MS/COLS)}${translations[currentLang].msPerDiv}`, PL+4, PT-8);
+  ctx.fillStyle=C.t1; ctx.fillText(translations[currentLang].chPing, PL+GW-200, PT-8);
+  ctx.fillStyle=C.t2; ctx.fillText(translations[currentLang].chQuality, PL+GW-110, PT-8);
 }
 
 render();
